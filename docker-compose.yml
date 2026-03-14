@@ -1,0 +1,72 @@
+# AI-Grading Management System - Docker Setup
+
+version: '3.8'
+
+services:
+  # Web Server (Apache + PHP 8.2)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-gms-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./uploads:/var/www/html/uploads
+      - ./logs:/var/www/html/logs
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=ai_grading_system
+      - DB_USER=ai_gms_user
+      - DB_PASSWORD=ai_gms_password
+    networks:
+      - ai-gms-network
+
+  # Database (MySQL 8.0)
+  db:
+    image: mysql:8.0
+    container_name: ai-gms-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_change_me
+      MYSQL_DATABASE: ai_grading_system
+      MYSQL_USER: ai_gms_user
+      MYSQL_PASSWORD: ai_gms_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - ai-gms-network
+
+  # phpMyAdmin (Optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ai-gms-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password_change_me
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - ai-gms-network
+
+networks:
+  ai-gms-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
